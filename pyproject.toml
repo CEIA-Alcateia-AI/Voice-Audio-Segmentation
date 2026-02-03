@@ -19,3 +19,8 @@ packages = ["src/segmentation"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/segmentation"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+]
