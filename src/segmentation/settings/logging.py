@@ -1,25 +1,36 @@
-from pydantic import Field
+from enum import StrEnum
 
-from segmentation.settings.base import BaseSettings
+from pydantic import BaseModel, Field
 
 
-class LoggingSettings(BaseSettings):
+class LogLevel(StrEnum):
+    """
+    Enumeration of standard logging levels.
+    """
+
+    CRITICAL = "CRITICAL"
+    ERROR = "ERROR"
+    WARNING = "WARNING"
+    INFO = "INFO"
+    DEBUG = "DEBUG"
+
+
+class LoggingSettings(BaseModel):
     """
     Settings related to logging configuration.
 
     Attributes:
-        level (str): The logging level for the segmentation application.
-        format (str): The format for log messages as a string.
+        log_level (LogLevel): The logging level for the segmentation application.
+        silence_external_loggers (bool): Whether to silence loggers from external libraries.
     """
 
-    level: str = Field(
-        default="INFO",
-        alias="LOG_LEVEL",
+    model_config = {"extra": "forbid"}  # Forbid extra fields in logging settings
+
+    log_level: LogLevel = Field(
+        default=LogLevel.INFO,
         description="The logging level for the segmentation application.",
     )
-
     silence_external_loggers: bool = Field(
         default=True,
-        alias="SILENCE_EXTERNAL_LOGGERS",
-        description="Whether to silence external library loggers by reducing their log level.",
+        description="Whether to silence loggers from external libraries.",
     )

@@ -11,7 +11,7 @@ def configure_logging(settings: LoggingSettings) -> None:
         settings (LoggingSettings): The logging settings to configure the logger.
     """
     segmentation_logger = getLogger("segmentation")
-    segmentation_logger.setLevel(settings.level.upper())
+    segmentation_logger.setLevel(settings.log_level.value)
 
     if settings.silence_external_loggers:
         # List of libraries used by the segmentation application whose loggers should be silenced
