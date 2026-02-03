@@ -17,8 +17,9 @@ class LoggingSettings(BaseSettings):
         alias="LOG_LEVEL",
         description="The logging level for the segmentation application.",
     )
-    format: str = Field(
-        default="console",
-        alias="LOG_FORMAT",
-        description="The format for log messages as a string.",
+
+    silence_external_loggers: bool = Field(
+        default=True,
+        alias="SILENCE_EXTERNAL_LOGGERS",
+        description="Whether to silence external library loggers by reducing their log level.",
     )
