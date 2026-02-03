@@ -1,9 +1,9 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from segmentation.settings.audio import AudioSettings
+from segmentation.settings.duration import DurationSettings
 from segmentation.settings.logging import LoggingSettings
-
-
 class Settings(BaseSettings):
     """
     Base settings class for segmentation configuration.
@@ -11,9 +11,13 @@ class Settings(BaseSettings):
     This class can be extended by other settings classes to inherit common configuration.
 
     Attributes:
+        audio (AudioSettings): Settings related to audio configuration.
+        duration (DurationSettings): Settings related to duration configuration.
         logging (LoggingSettings): Settings related to logging configuration.
     """
 
+    audio: AudioSettings = Field(default_factory=AudioSettings)
+    duration: DurationSettings = Field(default_factory=DurationSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
 
     model_config = SettingsConfigDict(
