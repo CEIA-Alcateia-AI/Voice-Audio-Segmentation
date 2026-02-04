@@ -184,3 +184,177 @@ class BaseStrategy(ABC):
             file_path, self.audio_settings.sample_rate_hz, self.audio_settings.channels
         )
         return self.segment_array_to_files(audio, file_path.stem)
+
+    def _process_raw_segments(
+        self, segments: List[Dict], audio_length_samples: int
+    ) -> List[Timestamp]:
+        """
+        Processes raw segments by merging short segments and splitting long segments.
+
+        Args:
+            segments (List[Dict]): List of segments with 'start' and 'end' keys.
+            audio_length_samples (int): The total length of the audio in samples.
+        Returns:
+            List[Timestamp]: List of processed segments.
+        """
+        merged_segments = self._merge_short_segments(segments)
+        overlapped_segments = self._apply_overlap(merged_segments, audio_length_samples)
+
+        timestamps: List[Timestamp] = []
+
+        for segment in overlapped_segments:
+            duration = (
+                segment["end"] - segment["start"]
+            ) / self.audio_settings.sample_rate_hz
+
+            if duration < self.duration_settings.hard_lower_limit:
+                logger.debug(
+                    "Discarding segment %.2f - %.2f (%.2fs) as it is below the hard lower limit.",
+                    segment["start"] / self.audio_settings.sample_rate_hz,
+                    segment["end"] / self.audio_settings.sample_rate_hz,
+                    duration,
+                )
+                continue
+
+            if duration > self.duration_settings.hard_upper_limit:
+                logger.warning(
+                    "Discarding segment %.2f - %.2f (%.2fs) as it exceeds the hard upper limit.",
+                    segment["start"] / self.audio_settings.sample_rate_hz,
+                    segment["end"] / self.audio_settings.sample_rate_hz,
+                    duration,
+                )
+                continue
+
+            timestamps.append(
+                (
+                    segment["start"] / self.audio_settings.sample_rate_hz,
+                    segment["end"] / self.audio_settings.sample_rate_hz,
+                )
+            )
+
+        return timestamps
+
+    def _apply_overlap(
+        self, segments: List[Dict], audio_length_samples: int
+    ) -> List[Dict]:
+        """
+        Applies overlap to segments based on the duration settings.
+
+        Args:
+            segments (List[Dict]): List of segments with 'start' and 'end' keys.
+            audio_length_samples (int): The total length of the audio in samples.
+        Returns:
+            List[Dict]: List of segments with applied overlap.
+        """
+        if self.duration_settings.overlap <= 0:
+            return segments
+
+        padding_samples = int(
+            seconds_to_samples(
+                self.duration_settings.overlap / 2, self.audio_settings.sample_rate_hz
+            )
+        )
+
+        processed_segments = []
+
+        for segment in segments:
+            start = max(0, segment["start"] - padding_samples)
+            end = min(audio_length_samples, segment["end"] + padding_samples)
+
+            processed_segments.append({"start": start, "end": end})
+
+        return processed_segments
+
+    def _merge_short_segments(self, segments: List[Dict]) -> List[Dict]:
+        """
+        Merges segments that are shorter than the minimum duration specified
+        in the settings with adjacent segments.
+
+        Args:
+            segments (List[Dict]): List of segments with 'start' and 'end' keys.
+        Returns:
+            List[Dict]: List of merged segments.
+        """
+        if not segments:
+            return []
+
+        soft_min_samples = int(
+            self.duration_settings.soft_lower_limit * self.audio_settings.sample_rate_hz
+        )
+        hard_max_samples = int(
+            self.duration_settings.hard_upper_limit * self.audio_settings.sample_rate_hz
+        )
+
+        target_samples = int(
+            (
+                self.duration_settings.soft_lower_limit
+                + self.duration_settings.soft_upper_limit
+            )
+            / 2
+            * self.audio_settings.sample_rate_hz
+        )
+
+        i = 0
+        while i < len(segments):
+            current = segments[i]
+            duration = current["end"] - current["start"]
+
+            # If the segment is acceptable (above soft limit), move on.
+            # (If it's huge, it will be caught by the hard limit filter later)
+            if duration >= soft_min_samples:
+                i += 1
+                continue
+
+            # Segment is too short (undesired). Evaluate merging options.
+            left_segment = segments[i - 1] if i > 0 else None
+            right_segment = segments[i + 1] if i < len(segments) - 1 else None
+
+            can_merge_left = False
+            score_left = float("inf")
+
+            if left_segment:
+                new_duration = current["end"] - left_segment["start"]
+                if new_duration <= hard_max_samples:
+                    can_merge_left = True
+                    score_left = abs(new_duration - target_samples)
+
+            can_merge_right = False
+            score_right = float("inf")
+
+            if right_segment:
+                new_duration = right_segment["end"] - current["start"]
+                if new_duration <= hard_max_samples:
+                    can_merge_right = True
+                    score_right = abs(new_duration - target_samples)
+
+            if not can_merge_left and not can_merge_right:
+                logger.debug(
+                    "Segment at index %d is short but unmergeable. Keeping for filter.",
+                    i,
+                )
+                i += 1
+                continue
+
+            # Prefer the merge that gets us closer to the target duration
+            if can_merge_left and (not can_merge_right or score_left <= score_right):
+                # Merge Left: Extend previous segment to cover current
+                logger.debug("Merging segment %d LEFT into %d", i, i - 1)
+                left_segment["end"] = current["end"]
+                segments.pop(i)
+                # Decrement i to re-evaluate the newly grown previous segment
+                # (It might still be short, or now eligible for another merge)
+                i -= 1
+
+            elif can_merge_right:
+                # Merge Right: Extend right segment to cover current start
+                logger.debug("Merging segment %d RIGHT into %d", i, i + 1)
+                right_segment["start"] = current["start"]
+                segments.pop(i)
+                # Do NOT increment i. 'right_segment' has shifted into position 'i'.
+                # We stay here to evaluate this new, larger segment.
+                continue
+
+            # Ensure we don't loop infinitely in edge cases
+            i = max(0, i)
+
+        return segments
