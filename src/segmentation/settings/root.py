@@ -6,6 +6,8 @@ from segmentation.settings.duration import DurationSettings
 from segmentation.settings.file import FileSettings
 from segmentation.settings.logging import LoggingSettings
 
+from segmentation.settings.implementations.silence import SilenceStrategySettings
+
 
 class Settings(BaseSettings):
     """
@@ -18,12 +20,20 @@ class Settings(BaseSettings):
         duration (DurationSettings): Settings related to duration configuration.
         file (FileSettings): Settings related to file configuration.
         logging (LoggingSettings): Settings related to logging configuration.
+
+        silence_strategy (SilenceStrategySettings): Settings specific to the silence detection segmentation strategy.
     """
 
     audio: AudioSettings = Field(default_factory=AudioSettings)
     duration: DurationSettings = Field(default_factory=DurationSettings)
     file: FileSettings = Field(default_factory=FileSettings)
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
+
+    # Settings for specific segmentation strategies
+    silence_strategy: SilenceStrategySettings = Field(
+        default_factory=SilenceStrategySettings,
+        description="Settings specific to the silence detection segmentation strategy.",
+    )
 
     model_config = SettingsConfigDict(
         env_prefix="SEGMENTATION_",  # Prefix for environment variables
