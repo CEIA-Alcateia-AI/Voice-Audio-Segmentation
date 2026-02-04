@@ -28,7 +28,8 @@ class FileSettings(BaseModel):
 
     Attributes:
         output_directory (str): The directory where output segmented files will be saved.
-        output_in_subdirectories (bool): Whether to save segmented files in subdirectories in the output directory.
+        output_in_subdirectory (bool): Whether to save segmented files in subdirectories in the output directory.
+        output_segment_in_subdirectory (bool): Whether to save each segment in its own subdirectory.
         name_template (str): Template for naming segmented files. Use placeholders like {original_name} and {segment_index}.
         file_format (FileType): The file format for the output segmented files (e.g., 'wav', 'mp3').
         generate_manifest (bool): Whether to generate a manifest file for each segmented audio file.
@@ -42,9 +43,14 @@ class FileSettings(BaseModel):
         description="The directory where output segmented files will be saved.",
     )
 
-    output_in_subdirectories: bool = Field(
+    output_in_subdirectory: bool = Field(
         default=True,
-        description="Whether to save segmented files in subdirectories in the output directory.",
+        description="Whether to save all segments in a subdirectory named after the audio file.",
+    )
+
+    output_segment_in_subdirectory: bool = Field(
+        default=False,
+        description="Whether to save each segment in its own subdirectory.",
     )
 
     name_template: str = Field(

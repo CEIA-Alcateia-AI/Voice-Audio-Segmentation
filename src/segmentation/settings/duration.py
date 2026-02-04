@@ -39,3 +39,8 @@ class DurationSettings(BaseModel):
         default=0.5,
         description="The duration (in seconds) of overlap between consecutive segments to ensure continuity.",
     )
+
+    maximum_merge_gap_duration: float = Field(
+        default=1.0,
+        description="The maximum gap (in seconds) between segments that allows merging. If the silence between two segments exceeds this, they won't be merged.",
+    )
