@@ -6,27 +6,33 @@ class DurationSettings(BaseModel):
     Settings related to segment duration configuration.
 
     Attributes:
-        minimum (float): The minimum duration (in seconds) for a segment to be considered valid
-        maximum (float): The maximum duration (in seconds) for a segment before it should be split.
-        hard_limit (float): The hard limit duration (in seconds) for segments; segments longer than this will be forcibly split.
+        soft_lower_limit (float): The desired minimum duration (in seconds) for a segment to be considered valid
+        soft_upper_limit (float): The desired maximum duration (in seconds) for a segment before it should be split.
+        hard_lower_limit (float): The hard lower limit duration (in seconds) for segments; segments shorter than this may be merged.
+        hard_upper_limit (float): The hard upper limit duration (in seconds) for segments; segments longer than this will be forcibly split.
         overlap (float): The duration (in seconds) of overlap between consecutive segments to ensure continuity
     """
 
     model_config = {"extra": "forbid"}  # Forbid extra fields in strategy settings
 
-    minimum: float = Field(
+    soft_lower_limit: float = Field(
         default=10.0,
-        description="The minimum duration (in seconds) for a segment to be considered valid.",
+        description="The desired minimum duration (in seconds) for a segment to be considered valid.",
     )
 
-    maximum: float = Field(
+    soft_upper_limit: float = Field(
         default=15.0,
-        description="The maximum duration (in seconds) for a segment before it should be split.",
+        description="The desired maximum duration (in seconds) for a segment before it should be split.",
     )
 
-    hard_limit: float = Field(
+    hard_lower_limit: float = Field(
+        default=5.0,
+        description="The hard lower limit duration (in seconds) for segments; segments shorter than this may be merged or discarded.",
+    )
+
+    hard_upper_limit: float = Field(
         default=30.0,
-        description="The hard limit duration (in seconds) for segments; segments longer than this will be forcibly split.",
+        description="The hard upper limit duration (in seconds) for segments; segments longer than this will be forcibly split.",
     )
 
     overlap: float = Field(
