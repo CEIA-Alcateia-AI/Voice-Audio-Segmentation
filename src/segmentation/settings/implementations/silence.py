@@ -17,7 +17,17 @@ class SilenceStrategySettings(BaseModel):
         description="The threshold (in decibels) below reference to consider as silence. Higher values are more aggressive.",
     )
 
-    min_silence_duration: float = Field(
+    minimum_silence_duration: float = Field(
         default=0.5,
         description="The minimum duration (in seconds) of silence required to trigger a split.",
+    )
+
+    frame_length: int = Field(
+        default=2048,
+        description="The number of samples per analysis frame for silence detection.",
+    )
+
+    hop_length: int = Field(
+        default=512,
+        description="The number of samples between successive analysis frames for silence detection.",
     )
