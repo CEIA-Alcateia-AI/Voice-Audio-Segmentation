@@ -28,8 +28,3 @@ class AudioSettings(BaseModel):
         default=-23.0,
         description="The target LUFS (Loudness Units relative to Full Scale) level for audio normalization.",
     )
-
-    strict_validation: bool = Field(
-        default=True,
-        description="Whether to enforce strict validation on audio inputs.",
-    )

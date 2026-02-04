@@ -19,6 +19,7 @@ class FileType(StrEnum):
     FLAC = "flac"
     AAC = "aac"
 
+
 class FileSettings(BaseModel):
     """
     Settings related to file configuration for segmentation.
