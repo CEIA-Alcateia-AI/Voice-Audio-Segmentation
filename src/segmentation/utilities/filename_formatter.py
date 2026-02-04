@@ -1,4 +1,5 @@
 from segmentation.settings.file import FileType
+from segmentation.exceptions import TemplateError
 
 
 def format_filename(
@@ -14,6 +15,8 @@ def format_filename(
         file_format (FileType): The file format for the output segmented file.
     Returns:
         str: Formatted filename for the segment.
+    Raises:
+        TemplateError: If the template contains invalid placeholders.
     """
     try:
         file_name = template.format(
@@ -21,8 +24,12 @@ def format_filename(
             segment_index=segment_index,
         )
     except KeyError as exception:
-        raise ValueError(
-            f"Invalid name_template '{template}'. Missing placeholder: {exception}"
+        raise TemplateError(
+            template, f"Missing placeholder: {exception}"
+        ) from exception
+    except Exception as exception:
+        raise TemplateError(
+            template, f"Template formatting failed: {exception}"
         ) from exception
 
     extension = file_format.value

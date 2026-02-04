@@ -95,3 +95,51 @@ class ManifestError(SegmentationError):
         self.manifest_path = manifest_path
         self.reason = reason
         super().__init__(f"Manifest error for '{manifest_path}': {reason}")
+
+
+class TemplateError(SegmentationError):
+    """Raised when filename template formatting fails."""
+
+    def __init__(self, template: str, reason: str):
+        self.template = template
+        self.reason = reason
+        super().__init__(f"Template error for '{template}': {reason}")
+
+
+class DurationError(SegmentationError):
+    """Raised when duration constraints are violated or inconsistent."""
+
+    def __init__(self, constraint_name: str, value: float, reason: str):
+        self.constraint_name = constraint_name
+        self.value = value
+        self.reason = reason
+        super().__init__(
+            f"Duration constraint '{constraint_name}' (value: {value}): {reason}"
+        )
+
+
+class SegmentProcessingError(SegmentationError):
+    """Raised when segment processing operations fail (merge, split, overlap)."""
+
+    def __init__(self, operation: str, reason: str):
+        self.operation = operation
+        self.reason = reason
+        super().__init__(f"Segment processing failed during '{operation}': {reason}")
+
+
+class EmptySegmentationError(SegmentationError):
+    """Raised when segmentation produces no valid segments."""
+
+    def __init__(self, reason: str = None):
+        message = "Segmentation produced no valid segments"
+        if reason:
+            message += f": {reason}"
+        super().__init__(message)
+
+
+class SilenceDetectionError(StrategyError):
+    """Raised when silence detection fails in the silence strategy."""
+
+    def __init__(self, reason: str):
+        super().__init__("SilenceStrategy", f"Silence detection failed: {reason}")
+        self.reason = reason

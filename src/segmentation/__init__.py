@@ -12,6 +12,11 @@ from segmentation.exceptions import (
     ConfigurationError,
     OutputDirectoryError,
     ManifestError,
+    TemplateError,
+    DurationError,
+    SegmentProcessingError,
+    EmptySegmentationError,
+    SilenceDetectionError,
 )
 
 __all__ = [
@@ -28,4 +33,9 @@ __all__ = [
     "ConfigurationError",
     "OutputDirectoryError",
     "ManifestError",
+    "TemplateError",
+    "DurationError",
+    "SegmentProcessingError",
+    "EmptySegmentationError",
+    "SilenceDetectionError",
 ]
