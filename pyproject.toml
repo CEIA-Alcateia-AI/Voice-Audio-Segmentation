@@ -9,9 +9,11 @@ description = "A project that holds many strategies for segmenting audio files i
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "numpy>=2.4.2",
+    "librosa>=0.11.0",
+    "numpy>=2.3.5",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
+    "soundfile>=0.13.1",
 ]
 
 [tool.hatch.build.targets.wheel]
