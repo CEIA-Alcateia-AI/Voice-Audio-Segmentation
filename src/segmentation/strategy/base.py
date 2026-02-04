@@ -72,12 +72,6 @@ class BaseStrategy(ABC):
         """
         logger.info("Processing timestamps for array with shape %s", audio.shape)
 
-        output_directory = build_output_directory(
-            self.file_settings.output_directory,
-            self.file_settings.output_in_subdirectories,
-            original_name,
-        )
-
         try:
             timestamps = self.segment_array_to_timestamps(audio)
         except Exception as e:
@@ -107,6 +101,15 @@ class BaseStrategy(ABC):
 
             segment_audio = audio[start_index:end_index]
 
+            # Build output directory for this segment
+            output_directory = build_output_directory(
+                self.file_settings.output_directory,
+                self.file_settings.output_in_subdirectory,
+                self.file_settings.output_segment_in_subdirectory,
+                original_name,
+                segment_index=index,
+            )
+
             segment_filename = format_filename(
                 original_name,
                 index,
@@ -132,7 +135,7 @@ class BaseStrategy(ABC):
                 manifest = Manifest(
                     original_file=original_name,
                     index=index,
-                    segment_file=str(segment_path),
+                    segment_file=segment_path.as_posix(),
                     start_time=start,
                     end_time=end,
                 )
@@ -293,6 +296,10 @@ class BaseStrategy(ABC):
             / 2
             * self.audio_settings.sample_rate_hz
         )
+        
+        max_gap_samples = int(
+            self.duration_settings.maximum_merge_gap_duration * self.audio_settings.sample_rate_hz
+        )
 
         i = 0
         while i < len(segments):
@@ -313,8 +320,9 @@ class BaseStrategy(ABC):
             score_left = float("inf")
 
             if left_segment:
+                gap = current["start"] - left_segment["end"]
                 new_duration = current["end"] - left_segment["start"]
-                if new_duration <= hard_max_samples:
+                if new_duration <= hard_max_samples and gap <= max_gap_samples:
                     can_merge_left = True
                     score_left = abs(new_duration - target_samples)
 
@@ -322,8 +330,9 @@ class BaseStrategy(ABC):
             score_right = float("inf")
 
             if right_segment:
+                gap = right_segment["start"] - current["end"]
                 new_duration = right_segment["end"] - current["start"]
-                if new_duration <= hard_max_samples:
+                if new_duration <= hard_max_samples and gap <= max_gap_samples:
                     can_merge_right = True
                     score_right = abs(new_duration - target_samples)
 
