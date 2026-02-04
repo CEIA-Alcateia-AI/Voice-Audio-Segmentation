@@ -48,7 +48,7 @@ class Manifest(BaseModel):
         from segmentation.exceptions import ManifestError
 
         try:
-            with open(file_path, "w") as json_file:
+            with open(file_path, "w", encoding="utf-8") as json_file:
                 json_file.write(self.to_json())
         except Exception as e:
             raise ManifestError(str(file_path), str(e)) from e
