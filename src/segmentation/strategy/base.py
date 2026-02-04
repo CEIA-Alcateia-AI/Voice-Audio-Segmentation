@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 from numpy import ndarray
 
@@ -165,11 +165,3 @@ class BaseStrategy(ABC):
             file_path, self.audio_settings.sample_rate_hz, self.audio_settings.channels
         )
         return self.segment_array_to_files(audio, file_path.stem)
-
-    def create_manifest(
-        self, original_name: str, segments: Dict[str, Path], timestamps: List[Timestamp]
-    ) -> Dict[str, Any]:
-        """
-        This should create a manifest dictionary for the whole original video and one per segment
-        """
-        pass
