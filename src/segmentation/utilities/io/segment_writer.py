@@ -20,17 +20,17 @@ def write_segment(output_path: Path, audio: ndarray, sample_rate: int) -> None:
     """
     if audio is None or len(audio) == 0:
         raise AudioDataError("Cannot write empty audio segment")
-    
+
     if sample_rate <= 0:
         raise AudioDataError(f"Invalid sample rate: {sample_rate}")
-    
+
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
     except Exception as e:
         raise SegmentWriteError(
             str(output_path), f"Cannot create parent directory: {e}"
         ) from e
-    
+
     try:
         write(output_path, audio, sample_rate)
     except Exception as e:

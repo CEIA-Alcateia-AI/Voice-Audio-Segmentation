@@ -1,14 +1,19 @@
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Union, Optional
+from typing import Dict, List, Tuple, Union, Optional
 
 from numpy import ndarray
 
-from segmentation.exceptions import SegmentationError, AudioDataError
+from segmentation.exceptions import SegmentationError
 from segmentation.settings.root import Settings as SegmentationSettings
 from segmentation.strategy.base import BaseStrategy as SegmentationStrategy
+from segmentation.utilities.validators import validate_audio_input
 
 logger = getLogger(__name__)
+
+# Type aliases for better readability
+Timestamp = Tuple[float, float]
+SegmentResult = Union[Dict[str, Path], List[Timestamp]]
 
 
 class Segmenter:
@@ -33,37 +38,34 @@ class Segmenter:
 
     def segment(
         self, audio: Union[str, Path, ndarray], output_to_file: bool = True
-    ) -> Any:
+    ) -> SegmentResult:
         """
         Segments the provided audio input and optionally writes the segments to files.
 
         Args:
             audio (Union[str, Path, ndarray]): The input audio data or path to the audio file.
             output_to_file (bool): Whether to write the segmented files to disk.
-
         Returns:
-            Any: A dictionary of file paths if output_to_file is True,
-                 or a list of timestamps if False.
-        
+            SegmentResult: A dictionary mapping segment filenames to file paths if
+                          output_to_file is True, or a list of (start, end) timestamps
+                          in seconds if False.
         Raises:
-            AudioDataError: If audio data is invalid.
-            SegmentationError: If segmentation fails.
+            AudioDataError: If audio data is invalid or malformed.
+            AudioLoadError: If audio file cannot be loaded.
+            SegmentWriteError: If segments cannot be written to disk.
+            InvalidTimestampError: If generated timestamps are invalid.
+            StrategyError: If the segmentation strategy fails.
+            SegmentationError: For any other segmentation-related errors.
         """
-        is_path = isinstance(audio, (str, Path))
-        input_label = str(audio) if is_path else "audio array"
-        
-        # Validate input
-        if not is_path:
-            if not isinstance(audio, ndarray):
-                raise AudioDataError(f"Expected ndarray or path, got {type(audio).__name__}")
-            if audio is None or len(audio) == 0:
-                raise AudioDataError("Audio array is empty")
+        is_path, input_label = validate_audio_input(audio)
 
         try:
             if output_to_file:
                 logger.info("Segmenting %s to files.", input_label)
                 if is_path:
-                    segments = self.strategy.segment_file_to_files(Path(audio).resolve())
+                    segments = self.strategy.segment_file_to_files(
+                        Path(audio).resolve()
+                    )
                 else:
                     segments = self.strategy.segment_array_to_files(
                         audio, original_name="array_input"

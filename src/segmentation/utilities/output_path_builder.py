@@ -27,13 +27,11 @@ def build_output_directory(
             True,
             "original_name must be provided when output_in_subdirectory is True",
         )
-    
+
     try:
         output_path = Path(output_directory)
     except Exception as e:
-        raise OutputDirectoryError(
-            output_directory, f"Invalid path: {e}"
-        ) from e
+        raise OutputDirectoryError(output_directory, f"Invalid path: {e}") from e
 
     if output_in_subdirectory:
         output_path = output_path / Path(original_name).stem
@@ -41,9 +39,7 @@ def build_output_directory(
     try:
         output_path.mkdir(parents=True, exist_ok=True)
     except PermissionError as e:
-        raise OutputDirectoryError(
-            str(output_path), f"Permission denied: {e}"
-        ) from e
+        raise OutputDirectoryError(str(output_path), f"Permission denied: {e}") from e
     except Exception as e:
         raise OutputDirectoryError(
             str(output_path), f"Cannot create directory: {e}"

@@ -26,10 +26,10 @@ def load_audio(file_path: Path, sample_rate: int, channels: int) -> ndarray:
     """
     if not file_path.exists():
         raise AudioLoadError(str(file_path), "File does not exist")
-    
+
     if not file_path.is_file():
         raise AudioLoadError(str(file_path), "Path is not a file")
-    
+
     try:
         audio, _ = load(
             file_path,
@@ -40,14 +40,12 @@ def load_audio(file_path: Path, sample_rate: int, channels: int) -> ndarray:
         if "format" in str(e).lower() or "codec" in str(e).lower():
             raise AudioFormatError(str(file_path), details=str(e)) from e
         raise AudioLoadError(str(file_path), str(e)) from e
-    
+
     if audio is None or len(audio) == 0:
         raise AudioDataError(f"Loaded audio from '{file_path}' is empty")
-    
+
     if not isinstance(audio, ndarray):
-        raise AudioDataError(
-            f"Expected ndarray, got {type(audio).__name__}"
-        )
+        raise AudioDataError(f"Expected ndarray, got {type(audio).__name__}")
 
     logger.debug(
         "Loaded audio file %s with shape %s",

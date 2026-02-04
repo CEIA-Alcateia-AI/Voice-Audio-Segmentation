@@ -46,7 +46,7 @@ class Manifest(BaseModel):
             ManifestError: If the manifest cannot be written to the file.
         """
         from segmentation.exceptions import ManifestError
-        
+
         try:
             with open(file_path, "w") as json_file:
                 json_file.write(self.to_json())

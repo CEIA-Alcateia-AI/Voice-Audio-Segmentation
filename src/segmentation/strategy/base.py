@@ -81,8 +81,10 @@ class BaseStrategy(ABC):
         try:
             timestamps = self.segment_array_to_timestamps(audio)
         except Exception as e:
-            raise StrategyError(self.__class__.__name__, f"Failed to generate timestamps: {e}") from e
-        
+            raise StrategyError(
+                self.__class__.__name__, f"Failed to generate timestamps: {e}"
+            ) from e
+
         segments_data: Dict[str, Path] = {}
 
         logger.info("Creating %d segments for %s", len(timestamps), original_name)
@@ -92,10 +94,14 @@ class BaseStrategy(ABC):
             if start < 0 or end < 0:
                 raise InvalidTimestampError(start, end, "Timestamps cannot be negative")
             if start >= end:
-                raise InvalidTimestampError(start, end, "Start time must be before end time")
+                raise InvalidTimestampError(
+                    start, end, "Start time must be before end time"
+                )
             if end > len(audio) / self.audio_settings.sample_rate_hz:
-                raise InvalidTimestampError(start, end, "End time exceeds audio duration")
-            
+                raise InvalidTimestampError(
+                    start, end, "End time exceeds audio duration"
+                )
+
             start_index = seconds_to_samples(start, self.audio_settings.sample_rate_hz)
             end_index = seconds_to_samples(end, self.audio_settings.sample_rate_hz)
 

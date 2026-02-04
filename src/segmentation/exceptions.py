@@ -1,5 +1,6 @@
 class SegmentationError(Exception):
     """Base exception for all segmentation-related errors."""
+
     pass
 
 
@@ -15,7 +16,9 @@ class AudioLoadError(SegmentationError):
 class AudioFormatError(SegmentationError):
     """Raised when audio format is invalid or unsupported."""
 
-    def __init__(self, file_path: str, expected_format: str = None, details: str = None):
+    def __init__(
+        self, file_path: str, expected_format: str = None, details: str = None
+    ):
         self.file_path = file_path
         self.expected_format = expected_format
         message = f"Invalid audio format for '{file_path}'"
@@ -82,9 +85,7 @@ class OutputDirectoryError(SegmentationError):
     def __init__(self, directory_path: str, reason: str):
         self.directory_path = directory_path
         self.reason = reason
-        super().__init__(
-            f"Cannot access output directory '{directory_path}': {reason}"
-        )
+        super().__init__(f"Cannot access output directory '{directory_path}': {reason}")
 
 
 class ManifestError(SegmentationError):
