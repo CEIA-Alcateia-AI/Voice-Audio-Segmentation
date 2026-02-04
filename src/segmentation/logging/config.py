@@ -15,7 +15,13 @@ def configure_logging(settings: LoggingSettings) -> None:
 
     if settings.silence_external_loggers:
         # List of libraries used by the segmentation application whose loggers should be silenced
-        external_loggers = []
+        external_loggers = [
+            "librosa",
+            "numpy",
+            "pydantic",
+            "pydantic_settings",
+            "soundfile",
+        ]
 
         for logger in external_loggers:
             getLogger(logger).setLevel(WARNING)

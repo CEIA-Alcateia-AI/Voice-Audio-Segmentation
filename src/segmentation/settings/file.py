@@ -38,6 +38,11 @@ class FileSettings(BaseModel):
         description="The directory where output segmented files will be saved.",
     )
 
+    output_in_subdirectories: bool = Field(
+        default=True,
+        description="Whether to save segmented files in subdirectories in the output directory.",
+    )
+
     name_template: str = Field(
         default="{original_name}_segment_{segment_index}",
         description="Template for naming segmented files. Use placeholders like {original_name} and {segment_index}.",
@@ -46,4 +51,14 @@ class FileSettings(BaseModel):
     file_format: FileType = Field(
         default=FileType.WAV,
         description="The file format for the output segmented files (e.g., 'wav', 'mp3').",
+    )
+
+    generate_manifest: bool = Field(
+        default=True,
+        description="Whether to generate a manifest file for each segmented audio file.",
+    )
+
+    manifest_name_template: str = Field(
+        default="{original_name}_manifest_{segment_index}.json",
+        description="Template for naming the manifest file. Use placeholders like {original_name} and {segment_index}.",
     )
