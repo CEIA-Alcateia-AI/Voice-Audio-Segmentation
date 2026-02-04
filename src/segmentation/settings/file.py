@@ -33,11 +33,6 @@ class FileSettings(BaseModel):
 
     model_config = {"extra": "forbid"}  # Forbid extra fields in file settings
 
-    input_directory: str = Field(
-        default="input",
-        description="The directory where input audio files are located.",
-    )
-
     output_directory: str = Field(
         default="output",
         description="The directory where output segmented files will be saved.",
