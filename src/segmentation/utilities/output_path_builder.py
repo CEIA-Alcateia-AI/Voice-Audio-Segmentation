@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from segmentation.exceptions import OutputDirectoryError, ConfigurationError
+
 
 def build_output_directory(
     output_directory: str,
@@ -15,18 +17,37 @@ def build_output_directory(
         original_name (str): The original name of the audio file.
     Returns:
         Path: The constructed output directory path.
+    Raises:
+        ConfigurationError: If configuration is invalid.
+        OutputDirectoryError: If the directory cannot be created.
     """
-    output_path = Path(output_directory)
-
     if output_in_subdirectory and original_name is None:
-        raise ValueError(
-            "original_name must be provided when output_in_subdirectory is True."
+        raise ConfigurationError(
+            "output_in_subdirectory",
+            True,
+            "original_name must be provided when output_in_subdirectory is True",
         )
+    
+    try:
+        output_path = Path(output_directory)
+    except Exception as e:
+        raise OutputDirectoryError(
+            output_directory, f"Invalid path: {e}"
+        ) from e
 
     if output_in_subdirectory:
         output_path = output_path / Path(original_name).stem
 
-    output_path.mkdir(parents=True, exist_ok=True)
+    try:
+        output_path.mkdir(parents=True, exist_ok=True)
+    except PermissionError as e:
+        raise OutputDirectoryError(
+            str(output_path), f"Permission denied: {e}"
+        ) from e
+    except Exception as e:
+        raise OutputDirectoryError(
+            str(output_path), f"Cannot create directory: {e}"
+        ) from e
 
     return output_path
 

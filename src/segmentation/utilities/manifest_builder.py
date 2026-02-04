@@ -42,6 +42,13 @@ class Manifest(BaseModel):
 
         Args:
             file_path (Path): The path to the JSON file where the manifest will be saved.
+        Raises:
+            ManifestError: If the manifest cannot be written to the file.
         """
-        with open(file_path, "w") as json_file:
-            json_file.write(self.to_json())
+        from segmentation.exceptions import ManifestError
+        
+        try:
+            with open(file_path, "w") as json_file:
+                json_file.write(self.to_json())
+        except Exception as e:
+            raise ManifestError(str(file_path), str(e)) from e

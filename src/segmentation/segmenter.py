@@ -4,6 +4,7 @@ from typing import Any, Union, Optional
 
 from numpy import ndarray
 
+from segmentation.exceptions import SegmentationError, AudioDataError
 from segmentation.settings.root import Settings as SegmentationSettings
 from segmentation.strategy.base import BaseStrategy as SegmentationStrategy
 
@@ -43,31 +44,49 @@ class Segmenter:
         Returns:
             Any: A dictionary of file paths if output_to_file is True,
                  or a list of timestamps if False.
+        
+        Raises:
+            AudioDataError: If audio data is invalid.
+            SegmentationError: If segmentation fails.
         """
         is_path = isinstance(audio, (str, Path))
         input_label = str(audio) if is_path else "audio array"
+        
+        # Validate input
+        if not is_path:
+            if not isinstance(audio, ndarray):
+                raise AudioDataError(f"Expected ndarray or path, got {type(audio).__name__}")
+            if audio is None or len(audio) == 0:
+                raise AudioDataError("Audio array is empty")
 
-        if output_to_file:
-            logger.info("Segmenting %s to files.", input_label)
-            if is_path:
-                segments = self.strategy.segment_file_to_files(Path(audio).resolve())
+        try:
+            if output_to_file:
+                logger.info("Segmenting %s to files.", input_label)
+                if is_path:
+                    segments = self.strategy.segment_file_to_files(Path(audio).resolve())
+                else:
+                    segments = self.strategy.segment_array_to_files(
+                        audio, original_name="array_input"
+                    )
             else:
-                segments = self.strategy.segment_array_to_files(
-                    audio, original_name="array_input"
-                )
-        else:
-            logger.info("Segmenting %s to timestamps.", input_label)
-            if is_path:
-                segments = self.strategy.segment_file_to_timestamps(
-                    Path(audio).resolve()
-                )
-            else:
-                segments = self.strategy.segment_array_to_timestamps(audio)
+                logger.info("Segmenting %s to timestamps.", input_label)
+                if is_path:
+                    segments = self.strategy.segment_file_to_timestamps(
+                        Path(audio).resolve()
+                    )
+                else:
+                    segments = self.strategy.segment_array_to_timestamps(audio)
 
-        logger.info(
-            "Segmentation complete. Generated %d items for %s.",
-            len(segments),
-            input_label,
-        )
+            logger.info(
+                "Segmentation complete. Generated %d items for %s.",
+                len(segments),
+                input_label,
+            )
 
-        return segments
+            return segments
+        except SegmentationError:
+            # Re-raise our domain exceptions
+            raise
+        except Exception as e:
+            # Wrap unexpected exceptions
+            raise SegmentationError(f"Unexpected error during segmentation: {e}") from e
