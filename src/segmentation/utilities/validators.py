@@ -18,11 +18,11 @@ def validate_audio_array(audio: ndarray) -> None:
     if not isinstance(audio, ndarray):
         raise AudioDataError(f"Expected ndarray, got {type(audio).__name__}")
 
-    if audio is None or len(audio) == 0:
-        raise AudioDataError("Audio array is empty")
-
     if audio.ndim == 0:
         raise AudioDataError("Audio array must have at least one dimension")
+
+    if audio is None or len(audio) == 0:
+        raise AudioDataError("Audio array is empty")
 
 
 def validate_audio_input(audio: Union[str, Path, ndarray]) -> tuple[bool, str]:
