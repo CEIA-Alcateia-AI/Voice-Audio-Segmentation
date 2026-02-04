@@ -1,15 +1,23 @@
 from abc import ABC, abstractmethod
 from logging import getLogger
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
-from librosa import load
 from numpy import ndarray
-from soundfile import write
+
 
 from segmentation.settings.audio import AudioSettings
 from segmentation.settings.duration import DurationSettings
-from segmentation.settings.file import FileSettings
+from segmentation.settings.file import FileSettings, FileType
+from segmentation.utilities.filename_formatter import format_filename
+from segmentation.utilities.io.audio_loader import load_audio
+from segmentation.utilities.io.segment_writer import write_segment
+from segmentation.utilities.manifest_builder import Manifest
+from segmentation.utilities.math.time_conversion import seconds_to_samples
+from segmentation.utilities.output_path_builder import (
+    build_output_directory,
+    build_path,
+)
 
 logger = getLogger(__name__)
 
@@ -63,8 +71,11 @@ class BaseStrategy(ABC):
         """
         logger.info("Processing timestamps for array with shape %s", audio.shape)
 
-        output_directory = Path(self.file_settings.output_directory)
-        output_directory.mkdir(parents=True, exist_ok=True)
+        output_directory = build_output_directory(
+            self.file_settings.output_directory,
+            self.file_settings.output_in_subdirectories,
+            original_name,
+        )
 
         timestamps = self.segment_array_to_timestamps(audio)
         segments_data: Dict[str, Path] = {}
@@ -72,25 +83,51 @@ class BaseStrategy(ABC):
         logger.info("Creating %d segments for %s", len(timestamps), original_name)
 
         for index, (start, end) in enumerate(timestamps):
-            start_index = self.seconds_to_samples(start)
-            end_index = self.seconds_to_samples(end)
+            start_index = seconds_to_samples(start, self.audio_settings.sample_rate_hz)
+            end_index = seconds_to_samples(end, self.audio_settings.sample_rate_hz)
 
             segment_audio = audio[start_index:end_index]
 
-            filename = self.format_filename(original_name, index)
-            output_path = output_directory / filename
+            segment_filename = format_filename(
+                original_name,
+                index,
+                self.file_settings.name_template,
+                self.file_settings.file_format,
+            )
 
-            self.write_segment(output_path, segment_audio)
+            manifest_filename = format_filename(
+                original_name,
+                index,
+                self.file_settings.manifest_name_template,
+                FileType.JSON,
+            )
+
+            segment_path = build_path(output_directory, segment_filename)
+            manifest_path = build_path(output_directory, manifest_filename)
+
+            write_segment(
+                segment_path, segment_audio, self.audio_settings.sample_rate_hz
+            )
+
+            if self.file_settings.generate_manifest:
+                manifest = Manifest(
+                    original_file=original_name,
+                    index=index,
+                    segment_file=str(segment_path),
+                    start_time=start,
+                    end_time=end,
+                )
+                manifest.to_json_file(manifest_path)
 
             logger.debug(
                 "Segment %d saved: %.2fs - %.2fs -> %s",
                 index,
                 start,
                 end,
-                filename,
+                segment_filename,
             )
 
-            segments_data[filename] = output_path
+            segments_data[segment_filename] = segment_path
 
             # Explicitly delete segment_audio to free memory before processing the next segment
             del segment_audio
@@ -108,7 +145,9 @@ class BaseStrategy(ABC):
         """
         logger.info("Processing timestamps for %s", file_path.name)
 
-        audio = self.load_audio(file_path)
+        audio = load_audio(
+            file_path, self.audio_settings.sample_rate_hz, self.audio_settings.channels
+        )
         return self.segment_array_to_timestamps(audio)
 
     def segment_file_to_files(self, file_path: Path) -> Dict[str, Path]:
@@ -122,69 +161,15 @@ class BaseStrategy(ABC):
         """
         logger.info("Processing file segmentation for %s", file_path.name)
 
-        audio = self.load_audio(file_path)
+        audio = load_audio(
+            file_path, self.audio_settings.sample_rate_hz, self.audio_settings.channels
+        )
         return self.segment_array_to_files(audio, file_path.stem)
 
-    def format_filename(self, original_name: str, segment_index: int) -> str:
+    def create_manifest(
+        self, original_name: str, segments: Dict[str, Path], timestamps: List[Timestamp]
+    ) -> Dict[str, Any]:
         """
-        Formats the filename for a segment based on the naming template.
-
-        Args:
-            original_name (str): The original name of the audio file.
-            segment_index (int): The index of the segment.
-        Returns:
-            str: Formatted filename for the segment.
+        This should create a manifest dictionary for the whole original video and one per segment
         """
-        try:
-            file_name = self.file_settings.name_template.format(
-                original_name=original_name,
-                segment_index=segment_index,
-            )
-        except KeyError as exc:
-            raise ValueError(
-                f"Invalid name_template '{self.file_settings.name_template}'. "
-                f"Missing placeholder: {exc}"
-            ) from exc
-
-        extension = self.file_settings.file_format.value
-        return f"{file_name}.{extension}"
-
-    def write_segment(self, output_path: Path, audio: ndarray) -> None:
-        """
-        Writes an audio segment to disk.
-        """
-        write(output_path, audio, self.audio_settings.sample_rate_hz)
-
-    def load_audio(self, file_path: Path) -> ndarray:
-        """
-        Loads audio from a file path.
-
-        Args:
-            file_path (Path): Path to the audio file.
-        Returns:
-            ndarray: Loaded audio array.
-        """
-        audio, _ = load(
-            file_path,
-            sr=self.audio_settings.sample_rate_hz,
-            mono=(self.audio_settings.channels == 1),
-        )
-
-        logger.debug(
-            "Loaded audio file %s with shape %s",
-            file_path.name,
-            audio.shape,
-        )
-
-        return audio
-
-    def seconds_to_samples(self, seconds: float) -> int:
-        """
-        Converts seconds to sample index using rounding to avoid drift.
-
-        Args:
-            seconds (float): Time in seconds.
-        Returns:
-            int: Corresponding sample index.
-        """
-        return round(seconds * self.audio_settings.sample_rate_hz)
+        pass
