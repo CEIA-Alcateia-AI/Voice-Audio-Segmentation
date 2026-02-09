@@ -24,6 +24,7 @@ include = ["src/segmentation"]
 
 [dependency-groups]
 dev = [
+    "black>=26.1.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.14",

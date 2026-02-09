@@ -1,5 +1,6 @@
 from logging import getLogger
 from pathlib import Path
+from time import perf_counter
 from typing import Dict, List, Tuple, Union, Optional
 
 from numpy import ndarray
@@ -37,7 +38,10 @@ class Segmenter:
         self.settings = settings or SegmentationSettings()
 
     def segment(
-        self, audio: Union[str, Path, ndarray], output_to_file: bool = True
+        self,
+        audio: Union[str, Path, ndarray],
+        output_to_file: bool = True,
+        generate_manifest: bool = False,
     ) -> SegmentResult:
         """
         Segments the provided audio input and optionally writes the segments to files.
@@ -45,6 +49,9 @@ class Segmenter:
         Args:
             audio (Union[str, Path, ndarray]): The input audio data or path to the audio file.
             output_to_file (bool): Whether to write the segmented files to disk.
+            generate_manifest (bool): If True and output_to_file is False, generates manifest files
+                                     for logging/tracking purposes even without writing audio segments.
+                                     Ignored if output_to_file is True (manifests controlled by settings).
         Returns:
             SegmentResult: A dictionary mapping segment filenames to file paths if
                           output_to_file is True, or a list of (start, end) timestamps
@@ -60,6 +67,7 @@ class Segmenter:
         is_path, input_label = validate_audio_input(audio)
 
         try:
+            start_time = perf_counter()
             if output_to_file:
                 logger.info("Segmenting %s to files.", input_label)
                 if is_path:
@@ -74,16 +82,23 @@ class Segmenter:
                 logger.info("Segmenting %s to timestamps.", input_label)
                 if is_path:
                     segments = self.strategy.segment_file_to_timestamps(
-                        Path(audio).resolve()
+                        Path(audio).resolve(), generate_manifest=generate_manifest
                     )
                 else:
                     segments = self.strategy.segment_array_to_timestamps(audio)
+                    if generate_manifest and self.settings.file.generate_manifest:
+                        self.strategy._generate_manifests_from_timestamps(
+                            segments, original_name="array_input"
+                        )
 
             logger.info(
                 "Segmentation complete. Generated %d items for %s.",
                 len(segments),
                 input_label,
             )
+
+            end_time = perf_counter()
+            logger.info("Segmentation took %.2f seconds.", end_time - start_time)
 
             return segments
         except SegmentationError:

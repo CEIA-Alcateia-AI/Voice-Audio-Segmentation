@@ -10,6 +10,7 @@ from segmentation.settings.duration import DurationSettings
 from segmentation.settings.file import FileSettings
 from segmentation.settings.implementations.silence import SilenceStrategySettings
 from segmentation.exceptions import SilenceDetectionError, EmptySegmentationError
+from segmentation.utilities.decorators import measure_segmentation_time
 
 logger = getLogger(__name__)
 
@@ -42,6 +43,7 @@ class SilenceStrategy(BaseStrategy):
         super().__init__(audio_settings, duration_settings, file_settings)
         self.silence_settings = silence_settings or SilenceStrategySettings()
 
+    @measure_segmentation_time
     def segment_array_to_timestamps(self, audio: ndarray) -> List[Timestamp]:
         """
         Segments the provided audio array into timestamps based on detected silence.

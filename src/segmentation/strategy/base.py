@@ -43,6 +43,7 @@ class BaseStrategy(ABC):
         self.audio_settings = audio_settings
         self.duration_settings = duration_settings
         self.file_settings = file_settings
+        self._last_segmentation_time = 0.0
 
         logger.debug("Initialized %s strategy", self.__class__.__name__)
 
@@ -82,6 +83,11 @@ class BaseStrategy(ABC):
         segments_data: Dict[str, Path] = {}
 
         logger.info("Creating %d segments for %s", len(timestamps), original_name)
+
+        # Calculate average time per segment
+        average_time_per_segment = (
+            self._last_segmentation_time / len(timestamps) if timestamps else 0.0
+        )
 
         for index, (start, end) in enumerate(timestamps):
             # Validate timestamp
@@ -138,6 +144,7 @@ class BaseStrategy(ABC):
                     segment_file=segment_path.as_posix(),
                     start_time=start,
                     end_time=end,
+                    time_to_segment=average_time_per_segment,
                 )
                 manifest.to_json_file(manifest_path)
 
@@ -156,12 +163,73 @@ class BaseStrategy(ABC):
 
         return segments_data
 
-    def segment_file_to_timestamps(self, file_path: Path) -> List[Timestamp]:
+    def _generate_manifests_from_timestamps(
+        self, timestamps: List[Timestamp], original_name: str
+    ) -> None:
+        """
+        Generates manifest files from timestamps without writing audio segments.
+        Useful for logging and tracking purposes.
+
+        Args:
+            timestamps (List[Timestamp]): List of (start, end) timestamps in seconds.
+            original_name (str): The original name of the audio file.
+        """
+        logger.info(
+            "Generating %d manifest files for %s", len(timestamps), original_name
+        )
+
+        # Calculate average time per segment
+        average_time_per_segment = (
+            self._last_segmentation_time / len(timestamps) if timestamps else 0.0
+        )
+
+        for index, (start, end) in enumerate(timestamps):
+            # Build output directory for this manifest
+            output_directory = build_output_directory(
+                self.file_settings.output_directory,
+                self.file_settings.output_in_subdirectory,
+                self.file_settings.output_segment_in_subdirectory,
+                original_name,
+                segment_index=index,
+            )
+
+            manifest_filename = format_filename(
+                original_name,
+                index,
+                self.file_settings.manifest_name_template,
+                FileType.JSON,
+            )
+
+            manifest_path = build_path(output_directory, manifest_filename)
+
+            manifest = Manifest(
+                original_file=original_name,
+                index=index,
+                segment_file="",  # No file written, only timestamps
+                start_time=start,
+                end_time=end,
+                time_to_segment=average_time_per_segment,
+            )
+            manifest.to_json_file(manifest_path)
+
+            logger.debug(
+                "Manifest %d saved: %.2fs - %.2fs -> %s",
+                index,
+                start,
+                end,
+                manifest_filename,
+            )
+
+    def segment_file_to_timestamps(
+        self, file_path: Path, generate_manifest: bool = False
+    ) -> List[Timestamp]:
         """
         Finds timestamps for a given file.
 
         Args:
             file_path (Path): Path to the audio file.
+            generate_manifest (bool): If True, generates manifest files for logging purposes
+                                     even though audio segments are not written to disk.
         Returns:
             List[Timestamp]: A list of (start, end) timestamps.
         """
@@ -170,7 +238,12 @@ class BaseStrategy(ABC):
         audio = load_audio(
             file_path, self.audio_settings.sample_rate_hz, self.audio_settings.channels
         )
-        return self.segment_array_to_timestamps(audio)
+        timestamps = self.segment_array_to_timestamps(audio)
+
+        if generate_manifest and self.file_settings.generate_manifest:
+            self._generate_manifests_from_timestamps(timestamps, file_path.stem)
+
+        return timestamps
 
     def segment_file_to_files(self, file_path: Path) -> Dict[str, Path]:
         """
@@ -296,9 +369,10 @@ class BaseStrategy(ABC):
             / 2
             * self.audio_settings.sample_rate_hz
         )
-        
+
         max_gap_samples = int(
-            self.duration_settings.maximum_merge_gap_duration * self.audio_settings.sample_rate_hz
+            self.duration_settings.maximum_merge_gap_duration
+            * self.audio_settings.sample_rate_hz
         )
 
         i = 0

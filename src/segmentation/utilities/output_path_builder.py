@@ -32,7 +32,7 @@ def build_output_directory(
             True,
             "original_name must be provided when output_in_subdirectory is True",
         )
-    
+
     if output_segment_in_subdirectory and segment_index is None:
         raise ConfigurationError(
             "output_segment_in_subdirectory",
@@ -48,7 +48,7 @@ def build_output_directory(
     # Add audio file subdirectory if requested
     if output_in_subdirectory:
         output_path = output_path / Path(original_name).stem
-    
+
     # Add segment subdirectory if requested
     if output_segment_in_subdirectory:
         output_path = output_path / f"segment_{segment_index}"

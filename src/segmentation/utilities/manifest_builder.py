@@ -10,9 +10,12 @@ class Manifest(BaseModel):
     Attributes:
         original_file (str): The path to the original audio file that was segmented.
         index: int: The index of the segment.
-        segment_file (str): The path to the segmented audio file.
+        segment_file (str): The path to the segmented audio file. Empty string if segments
+                           were not written to disk (timestamp-only mode).
         start_time (float): The start time of the segment in seconds.
         end_time (float): The end time of the segment in seconds.
+        time_to_segment (float): The average time taken to segment per segment in seconds.
+            Calculated as total timestamp computation time divided by number of segments.
     """
 
     original_file: str = Field(
@@ -21,11 +24,17 @@ class Manifest(BaseModel):
 
     index: int = Field(description="The index of the segment.")
 
-    segment_file: str = Field(description="The path to the segmented audio file.")
+    segment_file: str = Field(
+        description="The path to the segmented audio file. Empty if not written to disk."
+    )
 
     start_time: float = Field(description="The start time of the segment in seconds.")
 
     end_time: float = Field(description="The end time of the segment in seconds.")
+
+    time_to_segment: float = Field(
+        description="The average time taken per segment in seconds. Total segmentation time divided by number of segments."
+    )
 
     def to_json(self) -> str:
         """
